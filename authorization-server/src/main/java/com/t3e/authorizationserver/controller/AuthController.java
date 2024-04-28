@@ -1,14 +1,17 @@
-package com.t3e.authorizationserver.model;
+package com.t3e.authorizationserver.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class TestController {
+public class AuthController {
 
     @GetMapping("/login")
-    public String home() {
+    public String login() {
         return "login";
     }
 
+    public String register() {
+        return null;
+    }
 }
