@@ -69,8 +69,10 @@ public class SecurityConfig {
     public SecurityFilterChain resourceServerSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .securityMatcher("/api/**")
+                .securityMatcher("/register/**")
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/api/authenticated/**").permitAll()
+                        .requestMatchers("/register/**").permitAll()
                         .anyRequest().authenticated())
                 .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(conf -> conf.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
