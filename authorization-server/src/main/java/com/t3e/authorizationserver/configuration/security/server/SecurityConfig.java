@@ -91,6 +91,7 @@ public class SecurityConfig {
                 .anonymous(AbstractHttpConfigurer::disable)
                 .formLogin(login -> login
                         .loginPage("/login")
+                        .usernameParameter("email")
                         .permitAll())
                 .oauth2Login(conf -> conf
                         .successHandler(successHandler())

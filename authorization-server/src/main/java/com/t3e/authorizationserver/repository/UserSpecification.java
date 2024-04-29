@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UserSpecification implements BaseSpecification<UserEntity> {
-    public FilterMetadata<String> getUsernameEqualFilter(String username) {
-        return getAtomicFilter("username", username, FilterMetadata.FilterType.EQUAL);
+    public FilterMetadata<String> getEmailEqualFilter(String email) {
+        return getAtomicFilter("email", email, FilterMetadata.FilterType.EQUAL);
     }
 }

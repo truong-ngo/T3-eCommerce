@@ -7,6 +7,7 @@ import com.t3e.authorizationserver.service.core.UserService;
 import com.t3e.authorizationserver.service.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +15,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Implementation of {@link UserService}
@@ -23,9 +29,17 @@ import org.springframework.util.Assert;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    @Value("${user.default_password}")
+    private String defaultPassword;
+
     private final UserRepository repository;
     private final UserMapper mapper;
     private final UserSpecification specification;
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return repository.findOne(specification.filter(specification.getEmailEqualFilter(email))).map(mapper::toDto);
+    }
 
     @Override
     public void createUser(UserDetails user) {
@@ -38,8 +52,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(String username) {
-        repository.delete(specification.filter(specification.getUsernameEqualFilter(username)));
+    public void deleteUser(String email) {
+        repository.delete(specification.filter(specification.getEmailEqualFilter(email)));
     }
 
     @Override
@@ -59,12 +73,49 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean userExists(String username) {
-        return repository.exists(specification.filter(specification.getUsernameEqualFilter(username)));
+    public boolean userExists(String email) {
+        return repository.exists(specification.filter(specification.getEmailEqualFilter(email)));
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return repository.findOne(specification.filter(specification.getUsernameEqualFilter(username))).map(mapper::toDto).orElseThrow(() -> new UsernameNotFoundException("Not found user with username: " + username));
+        return findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Not found user with username: " + username));
+    }
+
+    @Override
+    public void resetPassword(String email) {
+        Optional<User> user = findByEmail(email);
+        if (user.isPresent()) {
+            user.get().setPassword(defaultPassword);
+            updateUser(user.get());
+
+            // Mail to user
+        }
+    }
+
+    @Override
+    public String register(User user, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return "register";
+        }
+        if (userExists(user.getUsername())) {
+            redirectAttributes.addAttribute("email_error", "Email already existed");
+            return "redirect:/register";
+        }
+        user.setRoles(List.of("ROLE_USER"));
+        createUser(user);
+        redirectAttributes.addFlashAttribute("message", "User created successfully, Please login");
+        return "redirect:/login";
+    }
+
+    @Override
+    public String forgotPassword(User user, RedirectAttributes redirectAttributes) {
+        if (!userExists(user.getUsername())) {
+            redirectAttributes.addAttribute("error_message", "Email: " + user.getUsername() + " not existed");
+            return "redirect:/forgot-password";
+        }
+        resetPassword(user.getUsername());
+        redirectAttributes.addAttribute("success_message", "New password has been sent to email: " + user.getUsername());
+        return "redirect:/forgot-password";
     }
 }
